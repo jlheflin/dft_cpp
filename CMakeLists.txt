@@ -5,7 +5,12 @@ include(FetchContent)
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_EXPORT_COMPILE_COMMANDS TRUE)
+set(CMAKE_BUILD_RPATH_USE_ORIGIN ON)
+set(CMAKE_INSTALL_RPATH_USE_LINK_PATH TRUE)
+set(CMAKE_INSTALL_ORIGIN "$ORIGIN/../lib")
+set(CMAKE_BUILD_WITH_INSTALL_RPATH ON)
 set(BUILD_SHARED_LIBS ON)
+
 
 find_package(spdlog CONFIG)
 if(NOT spdlog_FOUND)
@@ -82,4 +87,9 @@ target_link_libraries(dft_code PRIVATE
   fmt::fmt
   TBB::tbb
   spdlog::spdlog
+)
+install(TARGETS dft_code lebedev
+  RUNTIME DESTINATION bin
+  LIBRARY DESTINATION lib
+  ARCHIVE DESTINATION lib
 )
