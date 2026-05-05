@@ -61,10 +61,13 @@ find_package(fmt REQUIRED)
 file(DOWNLOAD
   "https://people.sc.fsu.edu/~jburkardt/cpp_src/sphere_lebedev_rule/sphere_lebedev_rule.cpp"
   "${CMAKE_BINARY_DIR}/sphere_lebedev_rule.cpp"
+  EXPECTED_HASH SHA256=ba66fe296c5e1bf8f0dbff35a227d00ba8fc23c0def291183a37da4a22d30d14
+
 )
 file(DOWNLOAD
   "https://people.sc.fsu.edu/~jburkardt/cpp_src/sphere_lebedev_rule/sphere_lebedev_rule.hpp"
   "${CMAKE_BINARY_DIR}/sphere_lebedev_rule.hpp"
+  EXPECTED_HASH SHA256=90a535143256689e15026b2a073d065843830e3cc062e7a6cb9cf49f59433fbf
 )
 add_library(lebedev SHARED
   ${CMAKE_BINARY_DIR}/sphere_lebedev_rule.cpp
