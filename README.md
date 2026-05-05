@@ -3,8 +3,6 @@
 
 ## Dependencies
 
-CMake should be able to find and install these suckers when needed:
-
 - Eigen3
 - Libint2
 - Libxc
@@ -41,5 +39,5 @@ Build:
 Once the build is finished, you can run
 
 ```bash
- LD_PRELOAD=$PWD/install/lib ./build/dft_code <desired_basis_set_default_sto-3g>
+ ./install/dft_code <desired_basis_set_default_sto-3g>
 ```
