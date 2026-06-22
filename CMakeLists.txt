@@ -41,6 +41,8 @@ if(NOT Libxc_FOUND)
     GIT_TAG 7.0.0
   )
   FetchContent_MakeAvailable(libxc)
+elseif(Libxc_FOUND)
+  message(STATUS "Libxc_FOUND = ${Libxc_FOUND}")
 endif()
 
 find_package(libint2 CONFIG)
@@ -84,7 +86,7 @@ target_include_directories(dft_code PRIVATE
 target_link_libraries(dft_code PRIVATE
   Libint2::int2
   Eigen3::Eigen
-  xc
+  Libxc::xc
   lebedev
   OpenBLAS::OpenBLAS
   OpenMP::OpenMP_CXX

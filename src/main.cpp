@@ -1,4 +1,5 @@
 // Instead of using the internal implementation, we use external BLAS libraries
+#include <deque>
 #define EIGEN_USE_BLAS
 // The "NumPy" of C++
 #include <Eigen/Dense>
@@ -54,7 +55,7 @@ using LebedevFunc = std::function<void(double*, double*, double*, double*)>;
 
 // Essentially a Python dictionary, where I put in a specific integer, and get the
 // related function out.
-std::map<int, LebedevFunc> lebedev_map = {
+std::unordered_map<int, LebedevFunc> lebedev_map = {
     {6,   ld0006},
     {14,  ld0014},
     {26,  ld0026},
@@ -76,6 +77,7 @@ std::map<int, LebedevFunc> lebedev_map = {
 // This is one of those functions, the same can be said for two_e_engine_run as well.
 // Just calls libint and fills the Eigen matrix
 void one_e_engine_run(std::string type, libint2::BasisSet obs, Eigen::MatrixXd& matrix, std::vector<libint2::Atom> atoms) {
+  libint2::initialize();
   libint2::Operator op;
   if (type == "kinetic") {
     op = libint2::Operator::kinetic;
@@ -113,6 +115,7 @@ void one_e_engine_run(std::string type, libint2::BasisSet obs, Eigen::MatrixXd& 
       }
     }
   }
+  libint2::finalize();
 }
 
 // So this is a little lost on me, but to save on memory I (with the help of Claude)
@@ -139,6 +142,7 @@ int ten_idx(int i, int j, int k, int l) {
 }
 
 void two_e_engine_run(libint2::BasisSet obs, Eigen::VectorXd& vector) {
+  libint2::initialize();
   libint2::Engine engine(libint2::Operator::coulomb, obs.max_nprim(), obs.max_l());
   const auto& shell_sets = obs.shell2bf();
   int N = obs.nbf();
@@ -179,6 +183,7 @@ void two_e_engine_run(libint2::BasisSet obs, Eigen::VectorXd& vector) {
       }
     }
   }
+  libint2::finalize();
 }
 
 // This is where the fun begins!
@@ -216,7 +221,6 @@ int main(int argc, char* argv[]) {
   spdlog::trace("Intitializing libint2...");
 
   // Boilerplate code, SOP for libint
-  libint2::initialize();
   // This is the file I plan on reading in using libint. I am too lazy to change the
   // filename each time and recompile, so I just changed the contents of the file.
   std::string filename = "./structure.xyz";
@@ -320,8 +324,8 @@ int main(int argc, char* argv[]) {
   u64 eri_size = n_unique * (n_unique + 1) / 2;
   Eigen::VectorXd ERI(eri_size);
 
-  std::vector<Eigen::MatrixXd> fock_history;
-  std::vector<Eigen::MatrixXd> error_history;
+  std::deque<Eigen::MatrixXd> fock_history;
+  std::deque<Eigen::MatrixXd> error_history;
 
   spdlog::info("Creating radial points...");
   // Build radial points, this uses the Mura-Knowles scheme.
@@ -511,10 +515,21 @@ int main(int argc, char* argv[]) {
   two_e_engine_run(obs, ERI);
   spdlog::info("ERI build took: {:.3f}s", elapsed(t_eri_start));
   spdlog::trace("Finalizing libint2...");
-  libint2::finalize();
 
-  spdlog::info("Creating H_core guess...");
+  spdlog::info("Creating H_core...");
   H = T + V_ne;
+  // spdlog::info("Creating GWH guess...");
+  // constexpr f64 K_gwh = 1.75;
+  // Eigen::MatrixXd F_guess(n_basis, n_basis);
+  // for (int u = 0; u < n_basis; u++) {
+  //   F_guess(u, u) = H(u, u);
+  //   for (int v = 0; v < u; v++) {
+  //     f64 val = 0.5 * K_gwh * S(u, v) * (H(u, u) + H(v, v));
+  //     F_guess(u, v) = val;
+  //     F_guess(v, u) = val;
+  //   }
+  // }
+  
 
   // This piece of code was a great diagnostic to see if my chi was being built
   // correctly. I need to better understand the math of how it works, but if
@@ -569,7 +584,7 @@ int main(int argc, char* argv[]) {
     // has worked well so far. Rho is what is passed to libxc to evaluate
     // the functional on
     int batch_size = 256;
-    const f64 tol_rho = 1e-10;
+    const f64 tol_rho = 1e-8;
     V_xc = Eigen::MatrixXd::Zero(n_basis, n_basis);
     rho = Eigen::VectorXd::Zero(total_points);
     exc = Eigen::VectorXd::Zero(total_points);
@@ -631,8 +646,8 @@ int main(int argc, char* argv[]) {
     error_history.push_back(e);
 
     if (fock_history.size() > diis_size) {
-      fock_history.erase(fock_history.begin());
-      error_history.erase(error_history.begin());
+      fock_history.pop_front();
+      error_history.pop_front();
     }
     int n_diis = fock_history.size();
 
